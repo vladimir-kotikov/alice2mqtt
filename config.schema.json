@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "G-On Alice",
+  "pluginAlias": "Alice-to-MQTT bridge",
   "pluginType": "platform",
   "singular": true,
   "headerDisplay": "An account to link your Yandex Alice to Homebridge needs to created on https://homebridge.g-on.io/. This account will be used when you enable the skill in the Yandex App, and in the configuration below.",
@@ -11,20 +11,14 @@
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "G-On Alice",
+        "default": "Alice-to-MQTT",
         "description": "Plugin name as displayed in the Homebridge log"
       },
-      "username": {
-        "title": "Username",
+      "brokerUrl": {
+        "title": "MQTT broker url",
         "type": "string",
-        "required": true,
-        "description": "Username for https://homebridge.g-on.io/"
-      },
-      "password": {
-        "title": "Password",
-        "type": "string",
-        "required": true,
-        "description": "Password for https://homebridge.g-on.io/"
+        "description": "MQTT broker url",
+        "default": "mqtt://localhost:1883"
       },
       "pin": {
         "title": "Homebridge Pin",
@@ -40,17 +34,8 @@
   },
   "layout": [
     "name",
-    {
-      "type": "flex",
-      "flex-flow": "row wrap",
-      "items": [
-        "username",
-        {
-          "key": "password",
-          "type": "password"
-        }
-      ]
-    },
+    "brokerUrl",
+    "pin",
     {
       "type": "fieldset",
       "title": "Optional Settings",
