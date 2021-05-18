@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "homebridge -DIQ -P . -U .homebridge",
-    "postinstall": "npx tsc -p ."
+    "postinstall": "npm i typescript && tsc -p ."
   },
   "repository": {
     "type": "git",
