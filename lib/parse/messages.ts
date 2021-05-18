@@ -1,8 +1,8 @@
-import { AliceCapabilityType, AliceDeviceCapabilityInfo, AliceDeviceType } from "../../types/alice";
+import { AliceCapabilityType, AliceDeviceCapabilityInfo, AliceDeviceCapabilityState, AliceDeviceType, AliceModeCapabilityInfo, AliceModeCapabilityState, AliceModeValue } from "../../types/alice";
 import { HapCharacteristicType, HapServiceType, HAP_SERVICE_TYPE_2_ALICE_DEVICE_TYPE } from "../../types/hap";
 import { CharacteristicJsonObject } from "../../types/hap-nodejs_internal";
 import { mireds2Kelvin } from "../util";
-import Characteristic = require("./Characteristic");
+import { Characteristic } from "./Characteristic";
 
 var debug = require('debug')('alice2mqtt:messages');
 
@@ -24,9 +24,9 @@ export function lookupCapabilities(char: CharacteristicJsonObject): AliceDeviceC
         });
         response.push({
           type: AliceCapabilityType.Mode,
-          "parameters": {
-            "instance": "thermostat",
-            "modes": [
+          parameters: {
+            instance: "thermostat",
+            modes: [
               {
                 "value": "heat"
               },
@@ -39,9 +39,9 @@ export function lookupCapabilities(char: CharacteristicJsonObject): AliceDeviceC
             ],
             "ordered": false
           }
-        });
+        } as AliceModeCapabilityInfo);
       } else {
-        var modes = [];
+        var modes: { value: AliceModeValue }[] = [];
         for (var i = 0; i < char["valid-values"].length; i++) {
           switch (char["valid-values"][i]) {
             case 0:
@@ -70,10 +70,9 @@ export function lookupCapabilities(char: CharacteristicJsonObject): AliceDeviceC
         if (modes.length) {
           response.push({
             type: AliceCapabilityType.Mode,
-            "parameters": {
-              "instance": "thermostat",
-              "modes": modes,
-              "ordered": false
+            parameters: {
+              instance: "thermostat",
+              modes,
             }
           });
         }
@@ -113,8 +112,10 @@ export function lookupCapabilities(char: CharacteristicJsonObject): AliceDeviceC
         type: AliceCapabilityType.ColorSetting,
         parameters: {
           temperature_k: {
-            min: mireds2Kelvin(char.minValue || 140),
-            max: mireds2Kelvin(char.maxValue || 500),
+            // using char.max for min range as mireds and kelvins are in reverse-propportional
+            // relation - the lesser in mireds - the greater in kelvins
+            min: mireds2Kelvin(char.maxValue || 500),
+            max: mireds2Kelvin(char.minValue || 140),
           }
         }
       });
@@ -161,23 +162,15 @@ export function lookupDeviceType(serviceType: HapServiceType): Maybe<AliceDevice
   return deviceType;
 }
 
-export function convertAliceValueToHomeBridgeValue(request_capability_data) {
+export function convertAliceValueToHomeBridgeValue(
+  request_capability_data: AliceDeviceCapabilityState,
+): { value: any } | { error_code: string; error_message: string } {
   switch (request_capability_data.type) {
-    case "devices.capabilities.on_off":
-      if (request_capability_data.state.instance == 'on') {
-        if (request_capability_data.state.value) {
-          return {
-            value: 1
-          };
-        } else {
-          return {
-            value: 0
-          };
-        }
-      }
-      break;
-
-    case "devices.capabilities.range":
+    case AliceCapabilityType.OnOff:
+      return {
+        value: request_capability_data.state.value ? 1 : 0
+      };
+    case AliceCapabilityType.Range:
       switch (request_capability_data.state.instance) {
         case 'brightness':
           if ((request_capability_data.state.value >= 0) || (request_capability_data.state.value <= 100)) {
@@ -199,8 +192,7 @@ export function convertAliceValueToHomeBridgeValue(request_capability_data) {
           break;
       }
       break;
-
-    case "devices.capabilities.mode":
+    case AliceCapabilityType.Mode:
       if (request_capability_data.state.instance == 'thermostat') {
         switch (request_capability_data.state.value) {
           case "auto":
@@ -223,7 +215,13 @@ export function convertAliceValueToHomeBridgeValue(request_capability_data) {
         }
       }
       break;
-
+    case AliceCapabilityType.ColorSetting:
+      switch (request_capability_data.state.instance) {
+        case "temperature_k":
+          return { value: mireds2Kelvin(request_capability_data.state.value) };
+        default:
+          break;
+      }
     default:
       break;
   }
@@ -235,52 +233,63 @@ export function convertAliceValueToHomeBridgeValue(request_capability_data) {
 }
 
 export function convertHomeBridgeValueToAliceValue(
-  capability_data: AliceDeviceCapabilityInfo, characteristic_data: Characteristic) {
-  var converted_capability_data = {
-    type: capability_data.type,
-    state: {}
-  }
+  capability_data: AliceDeviceCapabilityInfo, characteristic_data: Characteristic
+): AliceDeviceCapabilityState | { error_code: string; error_message: string } {
   switch (capability_data.type) {
     case AliceCapabilityType.OnOff:
-      converted_capability_data.state.instance = "on";
-      converted_capability_data.state.value = !!characteristic_data.value;
-      return converted_capability_data;
-    case AliceCapabilityType.Range:
-      if (capability_data.parameters && capability_data.parameters.instance) {
-        converted_capability_data.state.instance = capability_data.parameters.instance;
-        converted_capability_data.state.value = characteristic_data.value;
-        return converted_capability_data;
-      }
-      break;
-    case AliceCapabilityType.Mode:
-      if (capability_data.parameters && capability_data.parameters.instance) {
-        converted_capability_data.state.instance = capability_data.parameters.instance;
-        switch (characteristic_data.value) {
-          case 3:
-            converted_capability_data.state.value = "auto";
-            return converted_capability_data;
-
-          case 2:
-            converted_capability_data.state.value = "cool";
-            return converted_capability_data;
-
-          case 1:
-            converted_capability_data.state.value = "heat";
-            return converted_capability_data;
-
-          case 0:
-            converted_capability_data.state.value = "off";
-            return converted_capability_data;
-
-          default:
-            break;
+      return {
+        type: AliceCapabilityType.OnOff,
+        state: {
+          instance: "on",
+          value: !!characteristic_data.value,
         }
+      };
+    case AliceCapabilityType.Range:
+      return {
+        type: AliceCapabilityType.Range,
+        state: {
+          instance: capability_data.parameters.instance,
+          value: characteristic_data.value,
+        }
+      };
+    case AliceCapabilityType.Mode:
+      let capabilityValue: Maybe<AliceModeValue> = undefined;
+      switch (characteristic_data.value) {
+        case 3:
+          capabilityValue = "auto";
+          break;
+        case 2:
+          capabilityValue = "cool";
+          break;
+        case 1:
+          capabilityValue = "heat";
+          break;
+        case 0:
+          // capabilityValue = "off";
+          // FIXME: was "off" but there's no such value in alice docs
+          capabilityValue = "auto";
+          break;
+        default:
+          break;
       }
-      break;
+      if (!capabilityValue) {
+        break;
+      }
+      return {
+        type: AliceCapabilityType.Mode,
+        state: {
+          instance: capability_data.parameters.instance,
+          value: capabilityValue
+        }
+      };
     case AliceCapabilityType.ColorSetting:
-      converted_capability_data.state.instance = 'temperature_k';
-      converted_capability_data.state.value = mireds2Kelvin(characteristic_data.value);
-      return converted_capability_data;
+      return {
+        type: AliceCapabilityType.ColorSetting,
+        state: {
+          instance: "temperature_k",
+          value: mireds2Kelvin(characteristic_data.value),
+        }
+      };
     default:
       break;
   }

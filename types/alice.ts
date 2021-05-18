@@ -36,7 +36,7 @@ export enum AliceCapabilityType {
   ColorSetting = 'devices.capabilities.color_setting',
   Mode = 'devices.capabilities.mode',
   Range = 'devices.capabilities.range',
-  Toggle = 'devices.capabilities.toggle'
+  Toggle = 'devices.capabilities.toggle',
 }
 
 interface BaseAliceDeviceCapabilityInfo {
@@ -104,7 +104,7 @@ type AliceModeName = 'cleanup_mode' |
   'thermostat' |
   'work_speed';
 
-type AliceModeValue = 'auto' | 'eco' | 'turbo' |
+export type AliceModeValue = 'auto' | 'eco' | 'turbo' |
   'cool' | 'dry' | 'fan' | 'only' | 'heat' | 'preheat' |
   'high' | 'low' | 'medium' | 'max' | 'min' | 'fast' | 'slow' | 'express' | 'normal' | 'quiet' |
   'horizontal' | 'stationary' | 'vertical' |
@@ -114,17 +114,17 @@ type AliceModeValue = 'auto' | 'eco' | 'turbo' |
   'glass' | 'intensive' | 'pre_rinse' |
   'aspic' | 'baby_food' | 'baking' | 'bread' | 'boiling' | 'cereals' | 'cheesecake' | 'deep_fryer' | 'dessert' | 'fowl' | 'frying' | 'macaroni' | 'milk_porridge' | 'multicooker' | 'pasta' | 'pilaf' | 'pizza' | 'sauce' | 'slow_cook' | 'soup' | 'steam' | 'stewing' | 'vacuum' | 'yogurt';
 
-interface AliceModeCapabilityInfo extends BaseAliceDeviceCapabilityInfo {
+export interface AliceModeCapabilityInfo extends BaseAliceDeviceCapabilityInfo {
   type: AliceCapabilityType.Mode;
   parameters: {
     instance: AliceModeName;
-    mode: {
+    modes: {
       value: AliceModeValue;
     }[];
   };
 }
 
-interface AliceModeCapabilityState extends BaseAliceDeviceCapabilityState {
+export interface AliceModeCapabilityState extends BaseAliceDeviceCapabilityState {
   type: AliceCapabilityType.Mode;
   state: {
     instance: AliceModeName;

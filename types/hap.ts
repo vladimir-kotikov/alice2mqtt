@@ -113,12 +113,12 @@ export enum HapCharacteristicType {
     Version = "00000037-0000-1000-8000-0026BB765291",
 }
 
-export const HAP_SERVICE_TYPE_2_ALICE_DEVICE_TYPE: Record<HapServiceType, AliceDeviceType> = {
+export const HAP_SERVICE_TYPE_2_ALICE_DEVICE_TYPE: { [K in HapServiceType]?: AliceDeviceType } = {
     [HapServiceType.Lightbulb]: AliceDeviceType.Light,
     [HapServiceType.Switch]: AliceDeviceType.Switch,
     [HapServiceType.Outlet]: AliceDeviceType.Socket,
     [HapServiceType.Television]: AliceDeviceType.TV,
-    [HapServiceType.Speaker]: AliceDeviceType.MediaDevice,
+    [HapServiceType.TelevisionSpeaker]: AliceDeviceType.MediaDevice,
     [HapServiceType.Thermostat]: AliceDeviceType.Thermostat,
     // Not supported yet
     [HapServiceType.AirQualitySensor]: AliceDeviceType.Other,
