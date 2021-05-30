@@ -2,11 +2,15 @@
   "name": "homebridge-alice2mqtt",
   "version": "0.1.4",
   "description": "Yandex Alice Voice Assistant plugin for Homebridge. Developed by G-On",
-  "main": "plugin.js",
+  "main": "dist/plugin.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p .",
     "start": "homebridge -DIQ -P . -U .homebridge",
-    "postinstall": "npm i typescript && tsc -p . ; exit 0"
+    "prepack": "npm run build",
+    "postinstall": "npm i typescript && tsc -p ."
   },
   "repository": {
     "type": "git",
@@ -37,9 +41,13 @@
   "homepage": "https://github.com/G-On-dev/homebridge-g-on-alice#readme",
   "devDependencies": {
     "@types/debug": "^4.1.5",
+    "@types/mqtt": "^2.5.0",
     "@types/node": "^15.0.3",
     "hap-nodejs": "^0.9.4",
     "homebridge": "^1.3.4",
-    "typescript": "^4.2.4"
+    "typescript": "^4.3.2"
+  },
+  "prettier": {
+    "printWidth": 100
   }
 }

@@ -1,7 +1,5 @@
-gh-md-toc
-docs
-publish.sh
-README.md.orig.*
-README.md.toc.*
-tools/*
-test_commands/*
+.*
+src
+dist/**/*.js.map
+tsconfig.*
+*.tgz
