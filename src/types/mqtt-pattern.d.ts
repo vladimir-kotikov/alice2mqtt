@@ -1,3 +1,3 @@
 declare module "mqtt-pattern" {
-  export function exec(pattern: string, topic: string): Record<string, string>;
+  export function exec<T = Record<string, string>>(pattern: string, topic: string): T;
 }

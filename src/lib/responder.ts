@@ -1,4 +1,4 @@
-import { Logging, NodeCallback } from "homebridge";
+import { Logging } from "homebridge";
 import { HAPNodeJSClientOptions, Homebridge } from "hap-node-client";
 import {
   AliceActionRequest,
@@ -50,18 +50,11 @@ export class AliceResponder {
 
   constructor(options: HAPNodeJSClientOptions, private log: Logging) {
     this.client = new AsyncHapClient(options);
+    this.client.accessories();
   }
 
-  devices = async (
-    devicesRequest?: AliceDevicesRequest,
-    callback?: NodeCallback<AliceDevicesResponse>
-  ): Promise<void> => {
+  devices = async (devicesRequest: AliceDevicesRequest): Promise<AliceDevicesResponse> => {
     const hapEndpoints = await this.client.accessories();
-    if (!devicesRequest || !callback) {
-      callback && callback(null);
-      return;
-    }
-
     const devices = Object.entries(collectAccessories(hapEndpoints)).reduce<AliceDeviceMetadata[]>(
       (devices, [id, { accessory }]) => {
         const deviceInfo = hapAccessory2AliceDeviceInfo(accessory);
@@ -70,21 +63,16 @@ export class AliceResponder {
       []
     );
 
-    const response: AliceDevicesResponse = {
+    return {
       request_id: devicesRequest.request_id,
       payload: {
         user_id: "user",
         devices,
       },
     };
-
-    callback(null, response);
   };
 
-  query = async (
-    request: AliceQueryRequest,
-    callback: NodeCallback<AliceQueryResponse>
-  ): Promise<void> => {
+  query = async (request: AliceQueryRequest): Promise<AliceQueryResponse> => {
     const hapEndpoints = await this.client.accessories();
     const endpointsAndAccessoriedByDeviceId = collectAccessories(hapEndpoints);
     const devices = request.devices.map(({ id }) => {
@@ -93,18 +81,13 @@ export class AliceResponder {
       return { id, ...hapAccessory2AliceDeviceState(accessory) };
     });
 
-    const response: AliceQueryResponse = {
+    return {
       request_id: request.request_id,
       payload: { devices },
     };
-
-    callback(null, response);
   };
 
-  action = async (
-    request: AliceActionRequest,
-    callback: NodeCallback<AliceActionResponse>
-  ): Promise<void> => {
+  action = async (request: AliceActionRequest): Promise<AliceActionResponse> => {
     const hapEndpoints = await this.client.accessories();
     const endpointsAndAccessoriedByDeviceId = collectAccessories(hapEndpoints);
 
@@ -160,12 +143,10 @@ export class AliceResponder {
       }
     );
 
-    const response: AliceActionResponse = {
+    return {
       request_id: request.request_id,
       payload: { devices },
     };
-
-    callback(null, response);
   };
 }
 
