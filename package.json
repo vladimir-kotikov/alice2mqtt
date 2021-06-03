@@ -1,16 +1,15 @@
 {
   "name": "homebridge-alice2mqtt",
   "version": "0.1.4",
-  "description": "Yandex Alice Voice Assistant plugin for Homebridge. Developed by G-On",
-  "main": "dist/plugin.js",
+  "description": "Yandex Alice Voice Assistant command handler over MQTT",
+  "main": "dist/main.js",
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsc -p .",
-    "start": "node dist/plugin.js",
-    "prepack": "npm run build",
-    "postinstall": "npm i typescript && tsc -p ."
+    "start": "node dist/main.js",
+    "prepack": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -19,8 +18,6 @@
   "keywords": [
     "alice",
     "yandex",
-    "homebridge-plugin",
-    "voice control",
     "smart home"
   ],
   "engines": {
@@ -42,7 +39,6 @@
   "homepage": "https://github.com/G-On-dev/homebridge-g-on-alice#readme",
   "devDependencies": {
     "@types/debug": "^4.1.5",
-    "@types/mqtt": "^2.5.0",
     "@types/node": "^15.0.3",
     "hap-nodejs": "^0.9.4",
     "typescript": "^4.3.2"

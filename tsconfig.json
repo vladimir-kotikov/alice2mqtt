@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "incremental": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
@@ -8,6 +7,6 @@
     "noImplicitReturns": true,
     "sourceMap": true,
     "rootDir": "src",
-    "outDir": "./dist"
+    "outDir": "dist"
   }
 }
