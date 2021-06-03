@@ -1,14 +1,13 @@
 {
   "compilerOptions": {
     "incremental": true,
-    "sourceMap": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "resolveJsonModule": true,
+    "sourceMap": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "./dist"
   }
 }

@@ -1,4 +1,3 @@
-import { Logging } from "homebridge";
 import { HAPNodeJSClientOptions, Homebridge } from "hap-node-client";
 import {
   AliceActionRequest,
@@ -48,14 +47,15 @@ type CharacteristicAndCapabilityByCapabilityId = {
 export class AliceResponder {
   client: AsyncHapClient;
 
-  constructor(options: HAPNodeJSClientOptions, private log: Logging) {
+  constructor(options: HAPNodeJSClientOptions) {
     this.client = new AsyncHapClient(options);
     this.client.accessories();
   }
 
   devices = async (devicesRequest: AliceDevicesRequest): Promise<AliceDevicesResponse> => {
     const hapEndpoints = await this.client.accessories();
-    const devices = Object.entries(collectAccessories(hapEndpoints)).reduce<AliceDeviceMetadata[]>(
+    const endpointsAndAccessoriedByDeviceId = collectAccessories(hapEndpoints);
+    const devices = Object.entries(endpointsAndAccessoriedByDeviceId).reduce<AliceDeviceMetadata[]>(
       (devices, [id, { accessory }]) => {
         const deviceInfo = hapAccessory2AliceDeviceInfo(accessory);
         return deviceInfo ? [...devices, { id, ...deviceInfo }] : devices;
@@ -124,12 +124,14 @@ export class AliceResponder {
           }
 
           try {
-            // Despite they defined as
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            await this.client.command(hapEndpoint.instance.host, hapEndpoint.instance.port, [
-              { aid: accessory.aid, iid: characteristic.iid, value },
-            ]);
-            this.log(`Set ${id}:${getCapabilityId(capability)} -> ${value} OK`);
+            const hapResponse = await this.client.command(
+              hapEndpoint.instance.host,
+              hapEndpoint.instance.port,
+              [{ aid: accessory.aid, iid: characteristic.iid, value }]
+            );
+            debug(`HAP Endpoint ${hapEndpoint.deviceID} -> ${hapResponse}`);
+
+            console.log(`Set ${id}:${getCapabilityId(capability)} -> ${value} OK`);
             return capabilityActionResult(capability, { status: "DONE" });
           } catch (err) {
             return capabilityActionResult(
@@ -300,12 +302,14 @@ function collectCharacteristicsAndCapabilities(
   return collectCharacteristics(accessory).reduce<CharacteristicAndCapabilityByCapabilityId>(
     (characteristicsAndCapabilities, characteristic) => {
       const capability = getCapabilityState(characteristic);
-      return capability
-        ? {
-            ...characteristicsAndCapabilities,
-            [getCapabilityId(capability)]: { characteristic, capability },
-          }
-        : characteristicsAndCapabilities;
+      if (capability) {
+        const capabilityId = getCapabilityId(capability);
+        if (!(capabilityId in characteristicsAndCapabilities)) {
+          characteristicsAndCapabilities[capabilityId] = { characteristic, capability };
+        }
+      }
+
+      return characteristicsAndCapabilities;
     },
     {}
   );

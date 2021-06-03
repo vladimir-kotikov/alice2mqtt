@@ -1,54 +1,41 @@
-import { API as HomebridgeAPI, Logging, PlatformConfig } from "homebridge";
+import * as MQTTPattern from "mqtt-pattern";
+import * as Sentry from "@sentry/node";
 import { setupMQTT } from "./lib/mqtt";
 import { AliceResponder } from "./lib/responder";
-import * as MQTTPattern from "mqtt-pattern";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const debug = require("debug")("alice2mqtt");
 
 type AliceRequestType = "devices" | "query" | "action";
 
-export default function (homebridge: HomebridgeAPI): void {
-  homebridge.registerPlatform("homebridge-alice2mqtt", AliceHome);
-}
+Sentry.init({
+  dsn: "https://9a05b76d99034936947edc6b589741f4@o333403.ingest.sentry.io/5793709",
+});
 
-class AliceHome {
-  private pin: string;
-  private debug: boolean;
+import { config } from "./config";
 
-  constructor(private log: Logging, private config: PlatformConfig, api: HomebridgeAPI) {
-    this.pin = config["pin"];
-    // Enable config based DEBUG logging enable
-    this.debug = config["debug"] || false;
+const alice = new AliceResponder({ debug: config.debug, pin: config.pin });
+const handlers = {
+  devices: alice.devices,
+  query: alice.query,
+  action: alice.action,
+};
 
-    api.on("didFinishLaunching", this.didFinishLaunching);
-  }
-
-  didFinishLaunching = async () => {
-    // Initialize HAP Connections
-    const alice = new AliceResponder({ debug: this.debug, pin: this.pin }, this.log);
-    const handlers = {
-      devices: alice.devices,
-      query: alice.query,
-      action: alice.action,
-    };
-
-    const mqttClient = await setupMQTT(this.config.brokerUrl, this.log);
-    mqttClient.on("message", async function (topic, message) {
-      try {
-        const msg = JSON.parse(message.toString());
-        const { request } =
-          MQTTPattern.exec<{ request: AliceRequestType }>("alice/request/+request", topic) ?? {};
-        if (!request || !handlers[request]) {
-          debug(`No handlers found for alice request '${request}'`);
-          return;
-        }
-
-        const response = await handlers[request](msg);
-        mqttClient.publish("alice/response/" + request, JSON.stringify(response));
-      } catch (error) {
-        debug("Error", error.message);
+setupMQTT(config.brokerUrl).then((mqttClient) => {
+  mqttClient.on("message", async function (topic, message) {
+    try {
+      const msg = JSON.parse(message.toString());
+      const { request } =
+        MQTTPattern.exec<{ request: AliceRequestType }>("alice/request/+request", topic) ?? {};
+      if (!request || !handlers[request]) {
+        debug(`No handlers found for alice request '${request}'`);
+        return;
       }
-    });
-  };
-}
+
+      const response = await handlers[request](msg);
+      mqttClient.publish("alice/response/" + request, JSON.stringify(response));
+    } catch (error) {
+      debug("Error", error.message);
+    }
+  });
+});

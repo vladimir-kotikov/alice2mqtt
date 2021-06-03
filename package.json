@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build": "tsc -p .",
-    "start": "homebridge -DIQ -P . -U .homebridge",
+    "start": "node dist/plugin.js",
     "prepack": "npm run build",
     "postinstall": "npm i typescript && tsc -p ."
   },
@@ -24,10 +24,11 @@
     "smart home"
   ],
   "engines": {
-    "node": ">=4.4.5",
-    "homebridge": ">=0.4.16"
+    "node": ">=4.4.5"
   },
   "dependencies": {
+    "@sentry/node": "^6.5.0",
+    "@sentry/tracing": "^6.5.0",
     "debug": ">2.6.9",
     "hap-node-client": "^0.1.16",
     "mqtt": ">=2.18.8",
@@ -44,7 +45,6 @@
     "@types/mqtt": "^2.5.0",
     "@types/node": "^15.0.3",
     "hap-nodejs": "^0.9.4",
-    "homebridge": "^1.3.4",
     "typescript": "^4.3.2"
   },
   "prettier": {

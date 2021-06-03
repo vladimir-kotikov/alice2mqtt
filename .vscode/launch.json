@@ -1,28 +1,16 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "pwa-node",
-            "request": "launch",
-            "name": "Launch homebridge",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "program": "node_modules/.bin/homebridge",
-            "args": [
-                "-DIQ",
-                "-P",
-                ".",
-                "-U",
-                ".homebridge"
-            ],
-            "env": {
-                "DEBUG": "alice2mqtt:*"
-            },
-            "console": "integratedTerminal"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Start server",
+      "request": "launch",
+      "type": "node-terminal",
+      "command": "npm start",
+      "env": {
+        "BROKER_URL": "mqtt://192.168.10.100:1883",
+        "PIN": "234-54-512",
+        "DEBUG": "alice2mqtt:*"
+      }
+    }
+  ]
 }
