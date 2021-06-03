@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/G-On-dev/homebridge-g-on-alice.git"
+    "url": "git+https://github.com/vladimir-kotikov/alice2mqtt.git"
   },
   "keywords": [
     "alice",
@@ -31,12 +31,12 @@
     "mqtt": ">=2.18.8",
     "mqtt-pattern": "^1.2.0"
   },
-  "author": "G-On-dev",
+  "author": "Vladimir Kotikov <kotikov.vladimir@gmail.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/G-On-dev/homebridge-g-on-alice/issues"
+    "url": "https://github.com/vladimir-kotikov/alice2mqtt/issues"
   },
-  "homepage": "https://github.com/G-On-dev/homebridge-g-on-alice#readme",
+  "homepage": "https://github.com/vladimir-kotikov/alice2mqtt#readme",
   "devDependencies": {
     "@types/debug": "^4.1.5",
     "@types/node": "^15.0.3",
