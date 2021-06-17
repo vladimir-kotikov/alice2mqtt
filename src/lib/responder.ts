@@ -28,7 +28,7 @@ import { capabilityActionResult, errorActionResult } from "./util/actionResult";
 import { getCapabilityId, getDeviceId } from "./util/alice";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const debug = require("debug")("alice2mqtt:aliceActions");
+const debug = require("debug")("alice2mqtt:responder");
 
 type AliceCapabilityLike = { type: AliceCapabilityType };
 type EndpointAndAccessoryByDeviceId = {
@@ -131,7 +131,7 @@ export class AliceResponder {
             );
             debug(`HAP Endpoint ${hapEndpoint.deviceID} -> ${hapResponse}`);
 
-            console.log(`Set ${id}:${getCapabilityId(capability)} -> ${value} OK`);
+            debug(`Set ${id}:${getCapabilityId(capability)} -> ${value} OK`);
             return capabilityActionResult(capability, { status: "DONE" });
           } catch (err) {
             return capabilityActionResult(
