@@ -36,6 +36,7 @@ export enum HapServiceType {
 }
 
 export enum HapCharacteristicType {
+  Active = "000000B0-0000-1000-8000-0026BB765291",
   AdministratorOnlyAccess = "00000001-0000-1000-8000-0026BB765291",
   AirParticulateDensity = "00000064-0000-1000-8000-0026BB765291",
   AirParticulateSize = "00000065-0000-1000-8000-0026BB765291",
@@ -110,6 +111,7 @@ export enum HapCharacteristicType {
   TargetVerticalTiltAngle = "0000007D-0000-1000-8000-0026BB765291",
   TemperatureDisplayUnits = "00000036-0000-1000-8000-0026BB765291",
   Version = "00000037-0000-1000-8000-0026BB765291",
+  Volume = "00000119-0000-1000-8000-0026BB765291",
 }
 
 export const HAP_SERVICE_TYPE_2_ALICE_DEVICE_TYPE: { [K in HapServiceType]?: AliceDeviceType } = {

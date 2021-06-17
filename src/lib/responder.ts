@@ -346,8 +346,14 @@ function getCapabilityInfo(char: CharacteristicJsonObject): Maybe<AliceDeviceCap
           },
         },
       };
+    case HapCharacteristicType.Active:
     case HapCharacteristicType.On:
       return { type: AliceCapabilityType.OnOff };
+    case HapCharacteristicType.Volume:
+      return {
+        type: AliceCapabilityType.Range,
+        parameters: { instance: "volume" },
+      };
     default:
       debug(`Unsupported characteristic ${char.type} (${char.description})`);
       return;
@@ -377,6 +383,7 @@ function getCapabilityState(char: CharacteristicJsonObject): Maybe<AliceDeviceCa
           value: mireds2Kelvin(char.value as number),
         },
       } as AliceColorSettingCapabilityState;
+    case HapCharacteristicType.Active:
     case HapCharacteristicType.On:
       return {
         type: AliceCapabilityType.OnOff,
@@ -385,6 +392,14 @@ function getCapabilityState(char: CharacteristicJsonObject): Maybe<AliceDeviceCa
           value: !!char.value,
         },
       } as AliceOnOffCapabilityState;
+    case HapCharacteristicType.Volume:
+      return {
+        type: AliceCapabilityType.Range,
+        state: {
+          instance: "volume",
+          value: char.value,
+        },
+      } as AliceRangedCapabilityState;
     default:
       debug(`Unsupported characteristic ${char.type} (${char.description})`);
       return;

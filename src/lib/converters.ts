@@ -35,6 +35,7 @@ export function convertAliceValueToHomeBridgeValue(
     case AliceCapabilityType.Range:
       switch (request_capability_data.state.instance) {
         case "brightness":
+        case "volume":
           if (
             request_capability_data.state.value >= 0 ||
             request_capability_data.state.value <= 100
