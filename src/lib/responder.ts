@@ -23,9 +23,15 @@ import {
 } from "../types/hap-nodejs_internal";
 import { AsyncHapClient } from "./asyncHapClient";
 import { convertAliceValueToHomeBridgeValue, hapServiceType2AliceDeviceType } from "./converters";
-import { asyncMap, enumNameByValue, getCharacteristic, mireds2Kelvin } from "./util/common";
+import { asyncMap, enumNameByValue, getCharacteristic } from "./util/common";
+import { mireds2Kelvin } from "./util/converters";
 import { capabilityActionResult, errorActionResult } from "./util/actionResult";
 import { getCapabilityId, getDeviceId } from "./util/alice";
+import { CharacteristicValue, Perms } from "hap-nodejs";
+import {
+  CharacteristicReadData,
+  CharacteristicReadDataValue,
+} from "hap-nodejs/dist/internal-types";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const debug = require("debug")("alice2mqtt:responder");
@@ -43,6 +49,37 @@ type CharacteristicAndCapabilityByCapabilityId = {
     capability: AliceDeviceCapabilityState;
   };
 };
+type CompactCharacteristicObject = {
+  iid: number;
+  type: string;
+  value?: Nullable<CharacteristicValue>;
+};
+
+type AliceDeviceCustomData = {
+  availableCharacteristics: {
+    aid: number;
+    iid: number;
+    type: HapCharacteristicType;
+  }[];
+};
+
+// TODO: This is copied from hap-nodejs as it's declared as const enum there and
+// hence is not available for member name lookups. Decide what to do with this.
+enum HAPStatus {
+  SUCCESS = 0,
+  INSUFFICIENT_PRIVILEGES = -70401,
+  SERVICE_COMMUNICATION_FAILURE = -70402,
+  RESOURCE_BUSY = -70403,
+  READ_ONLY_CHARACTERISTIC = -70404,
+  WRITE_ONLY_CHARACTERISTIC = -70405,
+  NOTIFICATION_NOT_SUPPORTED = -70406,
+  OUT_OF_RESOURCE = -70407,
+  OPERATION_TIMED_OUT = -70408,
+  RESOURCE_DOES_NOT_EXIST = -70409,
+  INVALID_VALUE_IN_REQUEST = -70410,
+  INSUFFICIENT_AUTHORIZATION = -70411,
+  NOT_ALLOWED_IN_CURRENT_STATE = -70412,
+}
 
 export class AliceResponder {
   client: AsyncHapClient;
@@ -75,11 +112,56 @@ export class AliceResponder {
   query = async (request: AliceQueryRequest): Promise<AliceQueryResponse> => {
     const hapEndpoints = await this.client.accessories();
     const endpointsAndAccessoriedByDeviceId = collectAccessories(hapEndpoints);
-    const devices = request.devices.map(({ id }) => {
-      const { accessory } = endpointsAndAccessoriedByDeviceId[id] ?? {};
-      // TODO: if (!accessory) respond with 404 in this case
-      return { id, ...hapAccessory2AliceDeviceState(accessory) };
-    });
+
+    const devices: AliceDeviceState[] = await asyncMap(
+      request.devices,
+      async ({ id, custom_data }) => {
+        const { availableCharacteristics } = custom_data as AliceDeviceCustomData;
+        const { hapEndpoint } = endpointsAndAccessoriedByDeviceId[id] ?? {};
+
+        if (!hapEndpoint) {
+          return {
+            id,
+            error_code: "DEVICE_UNREACHABLE",
+            error_message: "Homebridge Device with such id is not found",
+          };
+        }
+
+        let characteristicsValues: CharacteristicReadData[] = [];
+        try {
+          characteristicsValues = await this.client.getCharacteristics(
+            hapEndpoint.instance.host,
+            hapEndpoint.instance.port,
+            availableCharacteristics.map(({ aid, iid }) => aid + "." + iid)
+          );
+        } catch (error) {
+          console.error(error);
+        }
+
+        const characteristics = characteristicsValues.reduce<CompactCharacteristicObject[]>(
+          (acc, charReadData, idx) => {
+            const { aid, iid, status } = charReadData;
+            if (status) {
+              debug(
+                `Failed reading characteristic ${aid}.${iid} of device ${id}: ` +
+                  `${enumNameByValue(HAPStatus, status as unknown as HAPStatus)}`
+              );
+              return acc;
+            }
+
+            const type = availableCharacteristics[idx].type;
+            const value = (charReadData as CharacteristicReadDataValue).value;
+            return [...acc, { iid, value, type }];
+          },
+          []
+        );
+
+        return {
+          id,
+          ...hapCharacteristics2AliceDeviceState(characteristics),
+        };
+      }
+    );
 
     return {
       request_id: request.request_id,
@@ -118,7 +200,7 @@ export class AliceResponder {
             );
           }
 
-          const [value, errorData] = convertAliceValueToHomeBridgeValue(capability);
+          const [value, errorData] = convertAliceValueToHomeBridgeValue(capability, characteristic);
           if (errorData) {
             return capabilityActionResult(capability, { status: "ERROR", ...errorData });
           }
@@ -167,29 +249,31 @@ function hapAccessory2AliceDeviceInfo(
     return;
   }
 
+  const characteristics = collectCharacteristics(accessory);
+  const availableCharacteristics = characteristics
+    // We're only interested in characteristics we're able to read
+    .filter(({ perms }) => perms.includes(Perms.PAIRED_READ))
+    .map(({ iid, type }) => ({ aid: accessory.aid, iid, type }));
+
   return {
     type,
     name: getAccessoryName(accessory, primaryService),
     device_info: getAccessoryInfo(accessory),
-    capabilities: collectCharacteristics(accessory)
+    capabilities: characteristics
       .map(getCapabilityInfo)
       .reduce<AliceDeviceCapabilityInfo[]>(omitDuplicateCapabilities, []),
+    custom_data: { availableCharacteristics } as AliceDeviceCustomData,
   };
 }
 
-function hapAccessory2AliceDeviceState(
-  accessory?: AccessoryJsonObject
+function hapCharacteristics2AliceDeviceState(
+  characteristics: CompactCharacteristicObject[]
 ): Omit<AliceDeviceState, "id"> {
-  return accessory
-    ? {
-        capabilities: collectCharacteristics(accessory)
-          .map(getCapabilityState)
-          .reduce<AliceDeviceCapabilityState[]>(omitDuplicateCapabilities, []),
-      }
-    : {
-        error_code: "DEVICE_UNREACHABLE",
-        error_message: "Homebridge Device with such id is not found",
-      };
+  return {
+    capabilities: characteristics
+      .map(getCapabilityState)
+      .reduce<AliceDeviceCapabilityState[]>(omitDuplicateCapabilities, []),
+  };
 }
 
 function getServiceName(service: ServiceJsonObject, inferNameFromType = true): Maybe<string> {
@@ -355,12 +439,12 @@ function getCapabilityInfo(char: CharacteristicJsonObject): Maybe<AliceDeviceCap
         parameters: { instance: "volume" },
       };
     default:
-      debug(`Unsupported characteristic ${char.type} (${char.description})`);
+      logUnsupportedCharacteristic(char);
       return;
   }
 }
 
-function getCapabilityState(char: CharacteristicJsonObject): Maybe<AliceDeviceCapabilityState> {
+function getCapabilityState(char: CompactCharacteristicObject): Maybe<AliceDeviceCapabilityState> {
   switch (char.type) {
     case HapCharacteristicType.ConfiguredName:
     case HapCharacteristicType.Name:
@@ -401,7 +485,7 @@ function getCapabilityState(char: CharacteristicJsonObject): Maybe<AliceDeviceCa
         },
       } as AliceRangedCapabilityState;
     default:
-      debug(`Unsupported characteristic ${char.type} (${char.description})`);
+      logUnsupportedCharacteristic(char);
       return;
   }
 }
@@ -417,4 +501,9 @@ function omitDuplicateCapabilities<T extends AliceCapabilityLike>(
   }
 
   return [...result, capability];
+}
+
+function logUnsupportedCharacteristic(char: CompactCharacteristicObject) {
+  const charType = `${enumNameByValue(HapCharacteristicType, char.type)} (${char.type})`;
+  debug(`Unsupported characteristic ${charType}`);
 }

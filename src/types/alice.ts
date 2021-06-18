@@ -291,6 +291,8 @@ export interface AliceRangedCapabilityState extends BaseAliceDeviceCapabilityInf
   state: {
     instance: AlicePercentageRangedInstanceName | AliceTemperatureRangedInstanceName;
     value: number;
+    // This is not documented as of now but Alice sets this to true when asked to aise e.g. volume
+    relative?: boolean;
   };
 }
 

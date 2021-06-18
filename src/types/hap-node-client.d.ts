@@ -1,7 +1,7 @@
 declare module "hap-node-client" {
   import { EventEmitter } from "events";
   import { NodeCallback } from "hap-nodejs";
-  import { AccessoriesResponse } from "hap-nodejs/dist/internal-types";
+  import { AccessoriesResponse, CharacteristicsReadResponse } from "hap-nodejs/dist/internal-types";
 
   export interface HAPNodeJSClientOptions {
     debug?: boolean;
@@ -36,6 +36,13 @@ declare module "hap-node-client" {
       port: number,
       commandBody: string,
       callback: NodeCallback<object>,
+      instance?: BonjourInstance
+    ): void;
+    HAPstatus(
+      host: string,
+      port: number,
+      body: string,
+      callback: NodeCallback<CharacteristicsReadResponse>,
       instance?: BonjourInstance
     ): void;
   }

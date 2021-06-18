@@ -1,3 +1,4 @@
+import { CharacteristicJsonObject } from "hap-nodejs/dist/internal-types";
 import {
   AliceCapabilityType,
   AliceDeviceCapabilityInfo,
@@ -6,7 +7,7 @@ import {
   AliceErrorCode,
 } from "../types/alice";
 import { HapServiceType, HAP_SERVICE_TYPE_2_ALICE_DEVICE_TYPE } from "../types/hap";
-import { mireds2Kelvin } from "./util/common";
+import { ensureValueInInterval, mireds2Kelvin } from "./util/converters";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const debug = require("debug")("alice2mqtt:messages");
@@ -27,7 +28,8 @@ export function hapServiceType2AliceDeviceType(
 }
 
 export function convertAliceValueToHomeBridgeValue(
-  request_capability_data: AliceDeviceCapabilityState
+  request_capability_data: AliceDeviceCapabilityState,
+  currentCharacteristic: CharacteristicJsonObject
 ): [any, { error_code: AliceErrorCode; error_message: string } | null | undefined] {
   switch (request_capability_data.type) {
     case AliceCapabilityType.OnOff:
@@ -35,15 +37,14 @@ export function convertAliceValueToHomeBridgeValue(
     case AliceCapabilityType.Range:
       switch (request_capability_data.state.instance) {
         case "brightness":
-        case "volume":
-          if (
-            request_capability_data.state.value >= 0 ||
-            request_capability_data.state.value <= 100
-          ) {
-            return [request_capability_data.state.value, null];
+        case "volume": {
+          let value = request_capability_data.state.value;
+          if (request_capability_data.state.relative) {
+            // FIXME: type cast
+            value = ((currentCharacteristic.value as number) ?? 0) + value;
           }
-          break;
-
+          return [ensureValueInInterval(value, 0, 100), null];
+        }
         case "temperature":
           if (
             request_capability_data.state.value >= 10 ||

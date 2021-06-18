@@ -5,6 +5,7 @@ import {
   Homebridge,
 } from "hap-node-client";
 import { CharacteristicValue } from "hap-nodejs";
+import { CharacteristicReadData } from "hap-nodejs/dist/internal-types";
 
 export type HapCharacteristicWriteData = {
   aid: number;
@@ -43,5 +44,28 @@ export class AsyncHapClient {
         instance
       );
     });
+  }
+
+  async getCharacteristics(
+    host: string,
+    port: number,
+    characteristicIds: string[],
+    instance?: BonjourInstance
+  ): Promise<CharacteristicReadData[]> {
+    return new Promise((resolve, reject) =>
+      this.hapClient.HAPstatus(
+        host,
+        port,
+        `?id=${characteristicIds.join(",")}`,
+        (err, result) => {
+          if (err) {
+            return reject(err);
+          }
+          const { characteristics } = result ?? {};
+          resolve(characteristics ?? []);
+        },
+        instance
+      )
+    );
   }
 }
