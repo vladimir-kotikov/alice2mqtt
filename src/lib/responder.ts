@@ -14,6 +14,7 @@ import {
   AliceQueryRequest,
   AliceQueryResponse,
   AliceRangedCapabilityState,
+  AliceToggleCapabilityState,
 } from "../types/alice";
 import { HapCharacteristicType, HapServiceType } from "../types/hap";
 import {
@@ -26,15 +27,23 @@ import { convertAliceValueToHomeBridgeValue, hapServiceType2AliceDeviceType } fr
 import { asyncMap, enumNameByValue, getCharacteristic } from "./util/common";
 import { mireds2Kelvin } from "./util/converters";
 import { capabilityActionResult, errorActionResult } from "./util/actionResult";
-import { getCapabilityId, getDeviceId } from "./util/alice";
+import {
+  deserializeCharacteristic,
+  getCapabilityId,
+  getDeviceId,
+  serializeCharacteristic,
+} from "./util/alice";
 import { CharacteristicValue, Perms } from "hap-nodejs";
 import {
   CharacteristicReadData,
   CharacteristicReadDataValue,
 } from "hap-nodejs/dist/internal-types";
+import { makeShortUUID } from "./util/hap";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const debug = require("debug")("alice2mqtt:responder");
+const createDebug = require("debug");
+const trace = createDebug("alice2mqtt:trace:lib/responder");
+const debug = createDebug("alice2mqtt:lib/responder");
 
 type AliceCapabilityLike = { type: AliceCapabilityType };
 type EndpointAndAccessoryByDeviceId = {
@@ -56,11 +65,7 @@ type CompactCharacteristicObject = {
 };
 
 type AliceDeviceCustomData = {
-  availableCharacteristics: {
-    aid: number;
-    iid: number;
-    type: HapCharacteristicType;
-  }[];
+  availableCharacteristics: string[];
 };
 
 // TODO: This is copied from hap-nodejs as it's declared as const enum there and
@@ -116,7 +121,10 @@ export class AliceResponder {
     const devices: AliceDeviceState[] = await asyncMap(
       request.devices,
       async ({ id, custom_data }) => {
-        const { availableCharacteristics } = custom_data as AliceDeviceCustomData;
+        const availableCharacteristics = (
+          custom_data as AliceDeviceCustomData
+        ).availableCharacteristics.map(deserializeCharacteristic);
+
         const { hapEndpoint } = endpointsAndAccessoriedByDeviceId[id] ?? {};
 
         if (!hapEndpoint) {
@@ -141,15 +149,16 @@ export class AliceResponder {
         const characteristics = characteristicsValues.reduce<CompactCharacteristicObject[]>(
           (acc, charReadData, idx) => {
             const { aid, iid, status } = charReadData;
+            const type = availableCharacteristics[idx].type;
             if (status) {
+              const typeStr = enumNameByValue(HapCharacteristicType, type);
+              const statusStr = enumNameByValue(HAPStatus, status as unknown as HAPStatus);
               debug(
-                `Failed reading characteristic ${aid}.${iid} of device ${id}: ` +
-                  `${enumNameByValue(HAPStatus, status as unknown as HAPStatus)}`
+                `Failed reading characteristic ${aid}.${iid} (${typeStr})) of device ${id}: ${statusStr}`
               );
               return acc;
             }
 
-            const type = availableCharacteristics[idx].type;
             const value = (charReadData as CharacteristicReadDataValue).value;
             return [...acc, { iid, value, type }];
           },
@@ -249,11 +258,25 @@ function hapAccessory2AliceDeviceInfo(
     return;
   }
 
+  const isReadableCharacteristic = ({ perms }: CharacteristicJsonObject) =>
+    perms.some((perm) => perm === Perms.PAIRED_READ || (perm as Perms) === Perms.READ);
+
+  const isSupportedCharacteristic = (char: CharacteristicJsonObject) =>
+    [
+      HapCharacteristicType.Brightness,
+      HapCharacteristicType.ColorTemperature,
+      HapCharacteristicType.Active,
+      HapCharacteristicType.On,
+      HapCharacteristicType.Volume,
+      HapCharacteristicType.Mute,
+    ].includes(char.type as HapCharacteristicType);
+
   const characteristics = collectCharacteristics(accessory);
   const availableCharacteristics = characteristics
     // We're only interested in characteristics we're able to read
-    .filter(({ perms }) => perms.includes(Perms.PAIRED_READ))
-    .map(({ iid, type }) => ({ aid: accessory.aid, iid, type }));
+    .filter(isReadableCharacteristic)
+    .filter(isSupportedCharacteristic)
+    .map((char) => serializeCharacteristic(accessory.aid, char));
 
   return {
     type,
@@ -503,7 +526,8 @@ function omitDuplicateCapabilities<T extends AliceCapabilityLike>(
   return [...result, capability];
 }
 
-function logUnsupportedCharacteristic(char: CompactCharacteristicObject) {
-  const charType = `${enumNameByValue(HapCharacteristicType, char.type)} (${char.type})`;
-  debug(`Unsupported characteristic ${charType}`);
+function logUnsupportedCharacteristic({ type }: CompactCharacteristicObject) {
+  const shortUUID = makeShortUUID(type);
+  const charType = `${enumNameByValue(HapCharacteristicType, type)} (${shortUUID})`;
+  trace(`Unsupported characteristic ${charType}`);
 }

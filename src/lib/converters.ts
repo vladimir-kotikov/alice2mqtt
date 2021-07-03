@@ -10,7 +10,7 @@ import { HapServiceType, HAP_SERVICE_TYPE_2_ALICE_DEVICE_TYPE } from "../types/h
 import { ensureValueInInterval, mireds2Kelvin } from "./util/converters";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const debug = require("debug")("alice2mqtt:messages");
+const debug = require("debug")("alice2mqtt:lib/converters");
 
 export function hapServiceType2AliceDeviceType(
   serviceType: HapServiceType

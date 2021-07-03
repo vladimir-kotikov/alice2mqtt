@@ -4,7 +4,7 @@ import { setupMQTT } from "./lib/mqtt";
 import { AliceResponder } from "./lib/responder";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const debug = require("debug")("alice2mqtt");
+const debug = require("debug")("alice2mqtt:main");
 
 type AliceRequestType = "devices" | "query" | "action";
 
@@ -21,21 +21,20 @@ const handlers = {
   action: alice.action,
 };
 
-setupMQTT(config.brokerUrl).then((mqttClient) => {
-  mqttClient.on("message", async function (topic, message) {
-    try {
-      const msg = JSON.parse(message.toString());
-      const { request } =
-        MQTTPattern.exec<{ request: AliceRequestType }>("alice/request/+request", topic) ?? {};
-      if (!request || !handlers[request]) {
-        debug(`No handlers found for alice request '${request}'`);
-        return;
-      }
+const mqttClient = setupMQTT(config.brokerUrl);
+mqttClient.on("message", async function (topic, message) {
+  debug(`${topic} <- ${message}`);
+  const msg = JSON.parse(message.toString());
+  const { request } =
+    MQTTPattern.exec<{ request: AliceRequestType }>("alice/request/+request", topic) ?? {};
+  if (!request || !handlers[request]) {
+    debug(`No handlers found for alice request '${request}'`);
+    return;
+  }
 
-      const response = await handlers[request](msg);
-      mqttClient.publish("alice/response/" + request, JSON.stringify(response));
-    } catch (error) {
-      debug("Error", error.message);
-    }
-  });
+  const responseTopic = "alice/response/" + request;
+  const response = await handlers[request](msg);
+  const responseStr = JSON.stringify(response);
+  mqttClient.publish(responseTopic, responseStr);
+  debug(`${responseTopic} -> ${responseStr}`);
 });
