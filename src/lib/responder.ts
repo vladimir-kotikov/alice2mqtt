@@ -461,6 +461,11 @@ function getCapabilityInfo(char: CharacteristicJsonObject): Maybe<AliceDeviceCap
         type: AliceCapabilityType.Range,
         parameters: { instance: "volume" },
       };
+    case HapCharacteristicType.Mute:
+      return {
+        type: AliceCapabilityType.Toggle,
+        parameters: { instance: "mute" },
+      };
     default:
       logUnsupportedCharacteristic(char);
       return;
@@ -507,6 +512,14 @@ function getCapabilityState(char: CompactCharacteristicObject): Maybe<AliceDevic
           value: char.value,
         },
       } as AliceRangedCapabilityState;
+    case HapCharacteristicType.Mute:
+      return {
+        type: AliceCapabilityType.Toggle,
+        state: {
+          instance: "mute",
+          value: !!char.value,
+        },
+      } as AliceToggleCapabilityState;
     default:
       logUnsupportedCharacteristic(char);
       return;

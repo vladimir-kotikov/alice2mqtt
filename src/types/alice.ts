@@ -305,14 +305,14 @@ type AliceToggleInstanceName =
   | "oscillation"
   | "pause";
 
-interface AliceToggleCapabilityInfo extends BaseAliceDeviceCapabilityInfo {
+export interface AliceToggleCapabilityInfo extends BaseAliceDeviceCapabilityInfo {
   type: AliceCapabilityType.Toggle;
   parameters: {
     instance: AliceToggleInstanceName;
   };
 }
 
-interface AliceToggleCapabilityState extends BaseAliceDeviceCapabilityInfo {
+export interface AliceToggleCapabilityState extends BaseAliceDeviceCapabilityInfo {
   type: AliceCapabilityType.Toggle;
   state: {
     instance: AliceToggleInstanceName;

@@ -83,6 +83,14 @@ export function convertAliceValueToHomeBridgeValue(
           break;
       }
       break;
+    case AliceCapabilityType.Toggle:
+      switch (request_capability_data.state.instance) {
+        case "mute":
+          return [!!request_capability_data.state.value, null];
+        default:
+          break;
+      }
+      break;
     default:
       break;
   }
