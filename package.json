@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "build": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "fmt": "pre-commit run prettier --all",
     "start": "node dist/main.js",
     "prepack": "npm run build"
   },
