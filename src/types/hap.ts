@@ -161,3 +161,21 @@ export const HAP_SERVICE_TYPE_2_ALICE_DEVICE_TYPE: { [K in HapServiceType]?: Ali
   [HapServiceType.Window]: AliceDeviceType.Other,
   [HapServiceType.WindowCovering]: AliceDeviceType.Other,
 };
+
+// TODO: This is copied from hap-nodejs as it's declared as const enum there and
+// hence is not available for member name lookups. Decide what to do with this.
+export enum HAPStatus {
+  SUCCESS = 0,
+  INSUFFICIENT_PRIVILEGES = -70401,
+  SERVICE_COMMUNICATION_FAILURE = -70402,
+  RESOURCE_BUSY = -70403,
+  READ_ONLY_CHARACTERISTIC = -70404,
+  WRITE_ONLY_CHARACTERISTIC = -70405,
+  NOTIFICATION_NOT_SUPPORTED = -70406,
+  OUT_OF_RESOURCE = -70407,
+  OPERATION_TIMED_OUT = -70408,
+  RESOURCE_DOES_NOT_EXIST = -70409,
+  INVALID_VALUE_IN_REQUEST = -70410,
+  INSUFFICIENT_AUTHORIZATION = -70411,
+  NOT_ALLOWED_IN_CURRENT_STATE = -70412,
+}

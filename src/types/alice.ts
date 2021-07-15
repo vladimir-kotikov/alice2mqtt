@@ -4,18 +4,18 @@ export interface AliceBaseRequest {
 
 export type AliceDevicesRequest = AliceBaseRequest;
 
-export interface AliceQueryRequest extends AliceBaseRequest {
+export interface AliceQueryRequest<T extends any = undefined> extends AliceBaseRequest {
   devices: {
     id: string;
-    custom_data: object;
+    custom_data: T;
   }[];
 }
 
-export interface AliceActionRequest extends AliceBaseRequest {
+export interface AliceActionRequest<T extends any = undefined> extends AliceBaseRequest {
   payload: {
     devices: {
       id: string;
-      custom_data?: object;
+      custom_data: T;
       capabilities: AliceDeviceCapabilityState[];
     }[];
   };
@@ -291,7 +291,7 @@ export interface AliceRangedCapabilityState extends BaseAliceDeviceCapabilityInf
   state: {
     instance: AlicePercentageRangedInstanceName | AliceTemperatureRangedInstanceName;
     value: number;
-    // This is not documented as of now but Alice sets this to true when asked to aise e.g. volume
+    // This is not documented as of now but Alice sets this to true when asked to raise e.g. volume
     relative?: boolean;
   };
 }
@@ -423,13 +423,13 @@ export type AliceDevicePropertyState =
   | AliceFloatDevicePropertyState
   | AliceEventDevicePropertyState;
 
-export interface AliceDeviceMetadata {
+export interface AliceDeviceMetadata<T = undefined> {
   id: string;
   name: string;
   description?: string;
   room?: string;
   type: AliceDeviceType;
-  custom_data?: object;
+  custom_data: T;
   capabilities?: AliceDeviceCapabilityInfo[];
   properties?: AliceDevicePropertyInfo[];
   device_info: {
@@ -445,10 +445,10 @@ export interface AliceBaseResponse {
   payload: any;
 }
 
-export interface AliceDevicesResponse extends AliceBaseResponse {
+export interface AliceDevicesResponse<T extends any = undefined> extends AliceBaseResponse {
   payload: {
     user_id: string;
-    devices: AliceDeviceMetadata[];
+    devices: AliceDeviceMetadata<T>[];
   };
 }
 
@@ -512,4 +512,8 @@ export interface AliceActionResponse extends AliceBaseResponse {
   payload: {
     devices: AliceDeviceActionResult[];
   };
+}
+
+export interface AliceCapabilityLike {
+  type: AliceCapabilityType;
 }

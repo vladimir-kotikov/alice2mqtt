@@ -1,4 +1,4 @@
-import { CharacteristicJsonObject } from "hap-nodejs/dist/internal-types";
+import { CharacteristicValue } from "hap-nodejs";
 import {
   AliceCapabilityType,
   AliceDeviceCapabilityInfo,
@@ -29,7 +29,7 @@ export function hapServiceType2AliceDeviceType(
 
 export function convertAliceValueToHomeBridgeValue(
   request_capability_data: AliceDeviceCapabilityState,
-  currentCharacteristic: CharacteristicJsonObject
+  currentValue: Maybe<Nullable<CharacteristicValue>>
 ): [any, { error_code: AliceErrorCode; error_message: string } | null | undefined] {
   switch (request_capability_data.type) {
     case AliceCapabilityType.OnOff:
@@ -41,7 +41,7 @@ export function convertAliceValueToHomeBridgeValue(
           let value = request_capability_data.state.value;
           if (request_capability_data.state.relative) {
             // FIXME: type cast
-            value = ((currentCharacteristic.value as number) ?? 0) + value;
+            value = ((currentValue as number) ?? 0) + value;
           }
           return [ensureValueInInterval(value, 0, 100), null];
         }
